@@ -17,6 +17,8 @@
             --gray-300: #CBD2D9;
             --gray-600: #616E7C;
             --gray-800: #3E4C59;
+            --success-green: #38A169;
+            --error-red: #E63946;
         }
 
         * {
@@ -96,7 +98,7 @@
             color: var(--primary-blue);
         }
 
-        h2 {
+        h2, h3 {
             font-size: clamp(1.8em, 4vw, 2.2em);
             color: var(--gray-800);
             font-weight: 700;
@@ -123,6 +125,38 @@
             padding: 0 20px;
         }
 
+        .button {
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .button-primary {
+            background: var(--primary-blue);
+            color: var(--white);
+        }
+
+        .button-success {
+            background: var(--success-green);
+            color: var(--white);
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 82, 204, 0.15);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
         #cpfInput {
             padding: 16px 20px;
             width: 100%;
@@ -144,29 +178,11 @@
             color: var(--gray-300);
         }
 
-        #verificarBtn {
-            background: var(--primary-blue);
-            color: var(--white);
-            padding: 16px 24px;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: 600;
-            transition: all 0.2s ease;
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
             width: 100%;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        #verificarBtn:hover {
-            background: var(--secondary-blue);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 82, 204, 0.15);
-        }
-
-        #verificarBtn:active {
-            transform: translateY(0);
         }
 
         @media (max-height: 600px) {
@@ -190,17 +206,6 @@
                 margin-bottom: 5px;
             }
         }
-    .warning-text {
-            color: #E63946;
-            font-size: 0.9em;
-            font-weight: 500;
-            margin-top: 8px;
-        }
-
-        #mensagem {
-            max-width: 460px;
-            margin: 0 auto;
-        }
     </style>
 </head>
 <body>
@@ -216,10 +221,14 @@
         <p id="mensagem">Por favor, insira seu CPF para verificar seu acesso ao aplicativo. Não compartilhe seu acesso com outros usuários, pois sua conta pode ser suspensa sem aviso prévio e sem reembolso.</p>
         <div class="input-container">
             <input type="text" id="cpfInput" placeholder="CPF (ex: 123.456.789-00)">
-            <button id="verificarBtn" onclick="verificarCPF()">Verificar Acesso</button>
+            <div class="button-container">
+                <button id="verificarBtn" class="button button-primary" onclick="verificarCPF()">Verificar Acesso</button>
+                <button id="comprarBtn" style="display: none;" class="button button-success" onclick="iniciarCompra()">Adquirir Acesso</button>
+            </div>
         </div>
     </div>
 </div>
+
 <script>
     // Função para formatar CPF enquanto digita
     document.getElementById('cpfInput').addEventListener('input', function(e) {
@@ -232,19 +241,25 @@
 
     // Função para obter a data mais recente
     function getLatestDate(vencimentos) {
-        // Verifica se vencimentos é uma string única ou um array
         if (typeof vencimentos === 'string') {
             return new Date(vencimentos);
         }
         
-        // Converte todas as datas para objetos Date e encontra a mais recente
         const datas = Array.isArray(vencimentos) ? vencimentos : [vencimentos];
         return new Date(Math.max(...datas.map(date => new Date(date).getTime())));
+    }
+
+    // Função para iniciar o processo de compra
+    function iniciarCompra() {
+        // Aqui você pode adicionar a lógica para redirecionar para a página de pagamento
+        // ou abrir um modal de checkout
+        window.location.href = 'https://wa.me/5533998352941';
     }
 
     // Função para verificar o status do plano com base no CPF
     async function verificarCPF() {
         const cpf = document.getElementById("cpfInput").value || localStorage.getItem("cpfUsuario");
+        const comprarBtn = document.getElementById("comprarBtn");
         
         try {
             const response = await fetch('assinatura.json');
@@ -258,18 +273,20 @@
 
             if (!user) {
                 mensagem.innerHTML = `
-                    <div style="color: #E63946;">
-                        Usuário não encontrado! Verifique o CPF inserido ou entre em contato com o suporte.
+                    <div style="text-align: left; padding: 20px; background: #FFF3F3; border-radius: 12px; border: 1px solid #FFE5E5;">
+                        <strong style="color: #E63946;">Usuário não encontrado</strong><br><br>
+                        Não encontramos seu CPF em nossa base de dados.<br>
+                        Você pode adquirir acesso clicando no botão abaixo.
                     </div>
                 `;
                 document.getElementById("cpfInput").style.display = "block";
-                document.getElementById("verificarBtn").style.display = "block";
+                document.getElementById("verificarBtn").style.display = "none";
+                comprarBtn.style.display = "block";
                 localStorage.removeItem("cpfUsuario");
-                document.getElementById("vencimentoModal").style.display = "block";
+                document.getElementById("vencimentoModal").style.display = "flex";
                 return;
             }
 
-            // Obtém a data mais recente se houver múltiplas datas de vencimento
             const dataVencimento = getLatestDate(user.vencimento);
             const now = new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
             const dataAtual = new Date(now);
@@ -283,12 +300,14 @@
                         Prezado(a) ${user.nome},<br><br>
                         Identificamos que seu último acesso expirou em ${dataVencimento.toLocaleDateString()}.<br>
                         Para continuar utilizando o aplicativo, por favor, renove sua assinatura.<br><br>
-                        Em caso de dúvidas, entre em contato com nosso suporte.
+                        Clique no botão abaixo para renovar seu acesso.
                     </div>
                 `;
                 document.getElementById("cpfInput").style.display = "none";
                 document.getElementById("verificarBtn").style.display = "none";
-                document.getElementById("vencimentoModal").style.display = "block";
+                comprarBtn.style.display = "block";
+                comprarBtn.textContent = "Renovar Acesso";
+                document.getElementById("vencimentoModal").style.display = "flex";
             } else {
                 mensagem.innerHTML = `
                     <div style="text-align: left; padding: 20px; background: #F0FFF4; border-radius: 12px; border: 1px solid #C6F6D5;">
@@ -298,13 +317,16 @@
                         Você será redirecionado em alguns instantes...
                     </div>
                 `;
+                document.getElementById("cpfInput").style.display = "none";
+                document.getElementById("verificarBtn").style.display = "none";
+                comprarBtn.style.display = "none";
                 setTimeout(() => {
                     document.getElementById("vencimentoModal").style.display = "none";
                 }, 3000);
             }
         } catch (error) {
             console.error('Erro:', error);
-            document.getElementById("mensagem").innerHTML = `
+            mensagem.innerHTML = `
                 <div style="color: #E63946;">
                     Erro ao verificar acesso. Por favor, tente novamente mais tarde ou contate o suporte.
                 </div>
@@ -320,7 +342,7 @@
             document.getElementById("verificarBtn").style.display = "none";
             verificarCPF();
         } else {
-            document.getElementById("vencimentoModal").style.display = "block";
+            document.getElementById("vencimentoModal").style.display = "flex";
         }
     }
 
